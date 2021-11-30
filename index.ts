@@ -1,5 +1,5 @@
 import { readFile } from 'fs/promises';
-import { generateKeys, encryptText, getMessage, decryptText, verfySignatures } from './pgp';
+import { generateKeys, encryptText, getMessage, decryptText, verfySignatures, generateRSAKeys } from './pgp';
   
 const PASSPHRASE = 'Born2BeWild';
 const FILE_PATH = './secret';
@@ -23,4 +23,19 @@ async function start() {
   }
 
   throw new Error('Signature could not verified.');
+}
+
+rsaFlow().then(console.log).catch(console.error);
+
+async function rsaFlow(): Promise<string> {
+  const { publicKey, privateKey } = await generateRSAKeys();
+
+  const fileContent = await readFile(FILE_PATH, 'utf8');
+
+  const encrypted = await encryptText({ text: fileContent, publicArmoredKey: publicKey })
+  const message = await getMessage(encrypted);
+
+  const { decrypted } = await decryptText({ message, privateArmoredKey: privateKey })
+
+  return decrypted.trim();
 }

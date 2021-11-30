@@ -46,14 +46,16 @@ export async function encryptText({
 }: {
   text: string;
   publicArmoredKey: string;
-  privateArmoredKey: string;
-  passphrase: string;
+  privateArmoredKey?: string;
+  passphrase?: string;
 }): Promise<string> {
   const publicKey = await readKey({ armoredKey: publicArmoredKey });
-  const privateKey = await decryptKey({
-    privateKey: await readPrivateKey({ armoredKey: privateArmoredKey }),
-    passphrase,
-  });
+  const privateKey = privateArmoredKey 
+    ? await decryptKey({
+        privateKey: await readPrivateKey({ armoredKey: privateArmoredKey }),
+        passphrase,
+      })
+    : undefined;
 
   const encrypted = await encrypt({
     message: await createMessage({ text }),
@@ -70,20 +72,25 @@ export async function getMessage(token: string) {
 
 export async function decryptText({
   message,
-  publicArmoredKey,
   privateArmoredKey,
   passphrase,
+  publicArmoredKey,
 }: {
   message: Message<string>;
-  publicArmoredKey: string;
   privateArmoredKey: string;
-  passphrase: string;
+  passphrase?: string;
+  publicArmoredKey?: string;
 }): Promise<{ decrypted: string; signatures: VerificationResult[] }> {
-  const publicKey = await readKey({ armoredKey: publicArmoredKey });
-  const privateKey = await decryptKey({
-    privateKey: await readPrivateKey({ armoredKey: privateArmoredKey }),
-    passphrase,
-  });
+  const publicKey = publicArmoredKey
+    ? await readKey({ armoredKey: publicArmoredKey })
+    : undefined;
+  const privateKey = passphrase
+    ? await decryptKey({
+        privateKey: await readPrivateKey({ armoredKey: privateArmoredKey }),
+        passphrase,
+      })
+    : await readPrivateKey({ armoredKey: privateArmoredKey });
+
   const { data, signatures } = await decrypt({
     message,
     decryptionKeys: privateKey,
@@ -103,4 +110,15 @@ export async function verfySignatures(
     console.error('verfySignatures: ', reason);
     return false;
   }
+}
+
+export async function generateRSAKeys(): Promise<{ publicKey: string; privateKey: string }> {
+  const { publicKey, privateKey } = await generateKey({
+    type: 'rsa',
+    rsaBits: 4096,
+    userIDs: [{}],
+    keyExpirationTime: 60 * 60 * 24 * 365,
+  });
+
+  return { publicKey, privateKey };
 }
