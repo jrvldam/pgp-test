@@ -80,7 +80,7 @@ export async function decryptText({
   privateArmoredKey: string;
   passphrase?: string;
   publicArmoredKey?: string;
-}): Promise<{ decrypted: string; signatures: VerificationResult[] }> {
+}): Promise<{ decrypted: string; signatures?: VerificationResult[] }> {
   const publicKey = publicArmoredKey
     ? await readKey({ armoredKey: publicArmoredKey })
     : undefined;
